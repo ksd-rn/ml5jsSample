@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>ビデオで認識</title>
+
+    <!-- 1. ここにP5.jsを読み込む -->
+    <script src="https://cdn.jsdelivr.net/npm/p5"></script>
+    <script src="https://unpkg.com/ml5@0.4.3/dist/ml5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/addons/p5.sound.min.js"></script>
+
+    <!-- 2.以下にsetup関数とdraw関数を定義 -->
+    <script>
+      let video;
+      let poseNet;
+      let poses = [];
+      let skeletons = [];
+      let tonakai_r, tonakai_l;
+      let x, y, d;
+
+      function preload() {
+        tonakai_r = loadImage("img/tonakai_r.png");
+        tonakai_l = loadImage("img/tonakai_l.png");
+        sound = loadSound("music/bgm.mp3");
+      }
+
+      function setup() {
+        sound.loop();
+        createCanvas(640, 480);
+        video = createCapture(VIDEO);
+
+        // Create a new poseNet method with a single detection
+        poseNet = ml5.poseNet(video, modelReady);
+        // This sets up an event that fills the global variable "poses"
+        // with an array every time new poses are detected
+        poseNet.on("pose", function (results) {
+          poses = results;
+        });
+        // Hide the video element, and just show the canvas
+        video.hide();
+      }
+
+      function modelReady() {
+        select("#status").html("Model Loaded");
+      }
+
+      function draw() {
+        image(video, 0, 0, width, height);
+        // We can call both functions to draw all keypoints and the skeletons
+        drawKeypoints();
+        //drawSkeleton();
+      }
+
+      // A function to draw ellipses over the detected keypoints
+      function drawKeypoints() {
+        imageMode(CORNER);
+        image(video, 0, 0, width, height);
+        imageMode(CENTER);
+
+        if (poses.length > 0) {
+          let pose = poses[0].pose;
+
+          let l_eye = pose["leftEye"];
+          image(tonakai_l, l_eye.x * 1.1, l_eye.y * 0.3, d * 1.2, d * 1.2);
+
+          let r_eye = pose["rightEye"];
+          image(tonakai_r, r_eye.x * 0.9, r_eye.y * 0.3, d * 1.2, d * 1.2);
+
+          let nose = pose["nose"];
+          fill(255, 0, 0);
+          noStroke();
+          ellipse(nose.x, nose.y, d / 3, d / 3);
+
+          d = Math.sqrt(
+            Math.pow(nose.x - l_eye.x, 2) + Math.pow(nose.y - l_eye.y, 2)
+          );
+
+          for (let i = 0; i <= 30; i++) {
+            x = random(width);
+            y = random(height);
+            fill(255, 255, 255);
+            noStroke();
+            ellipse(x, y + 1, 10, 10);
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="status"></div>
+    <div id="result"></div>
+    <div id="probability"></div>
+  </body>
+</html>
